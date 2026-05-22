@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活塞 PetPet 生成器</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; max-width: 600px; margin: 0 auto; }
+        input, button { margin: 10px; padding: 10px; font-size: 16px; }
+        #preview { max-width: 100%; margin-top: 20px; }
+        .loading { color: #666; }
+    </style>
+</head>
+<body>
+    <h1>🔧 活塞 PetPet 生成器</h1>
+    <p>纯浏览器运行，无需上传服务器</p>
+    
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg">
+    <br>
+    <button id="generateBtn" disabled>生成 GIF</button>
+    <p id="status"></p>
+    <img id="preview" style="display:none;">
+    <br>
+    <a id="downloadLink" style="display:none;" download="petpet.gif">下载 GIF</a>
+
+    <script type="module">
+        import init, { make_petpet } from '../pkg/petpet_rs.js';
+
+        let wasmReady = false;
+
+        // 初始化 WASM
+        init().then(() => {
+            wasmReady = true;
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('status').textContent = '✅ 准备就绪，请选择图片';
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) {
+                alert('请先选择图片');
+                return;
+            }
+
+            document.getElementById('status').textContent = '⏳ 生成中...';
+            document.getElementById('generateBtn').disabled = true;
+
+            // 读取文件为字节数组
+            const arrayBuffer = await file.arrayBuffer();
+            const inputBytes = new Uint8Array(arrayBuffer);
+
+            // 调用 Rust WASM 生成 GIF
+            const gifBytes = make_petpet(inputBytes);
+
+            // 创建 Blob 和下载链接
+            const blob = new Blob([gifBytes], { type: 'image/gif' });
+            const url = URL.createObjectURL(blob);
+
+            document.getElementById('preview').src = url;
+            document.getElementById('preview').style.display = 'block';
+            
+            const link = document.getElementById('downloadLink');
+            link.href = url;
+            link.style.display = 'inline';
+            link.textContent = '⬇️ 下载 petpet.gif';
+
+            document.getElementById('status').textContent = '✅ 生成完成！';
+            document.getElementById('generateBtn').disabled = false;
+        });
+    </script>
+</body>
+</html>
